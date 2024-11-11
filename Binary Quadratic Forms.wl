@@ -27,10 +27,10 @@ ClassNumber::usage = "ClassNumber[d] returns the number of reduced qudratic form
 
 (* ::Subsubsubsection:: *)
 (*Elementary Genus Theory*)
-GenusRepresentatives::usage = "";
-SameGenusQ::usage = "";
-PrincipalForm::usage = "";
-DirichletComposition::usage = "";
+GenusRepresentatives::usage = "GenusRepresentatives[f] returns the values represented by the genus containing the form f";
+SameGenusQ::usage = "SameGenusQ[f, g] returns True if the forms f and g belong to the same genus, and False otherwise";
+PrincipalForm::usage = "PrincipalForm[d] returns the principle form of discriminant d";
+DirichletComposition::usage = "DirichletComposition[f, g] returns the Dirichlet Composition of the forms f and g";
 
 Begin["`Private`"];
 
