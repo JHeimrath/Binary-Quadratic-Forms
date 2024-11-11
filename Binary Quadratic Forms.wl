@@ -13,7 +13,8 @@ BeginPackage["QuadraticForms`"];
 
 (*Throughout this package, when talking about a (quadratic) form {a, b, c}, we will mean the quadratic form ax^2+bxy+cy^2*)
 
-Unprotect[Discriminant];
+(* ::Subsubsubsection:: *)
+(*Elementary Theory of Quadratic Forms*)
 Discriminant::usage = "Discriminant[{a, b, c}] computes the discriminant of the form {a, b, c}";
 PositiveDefiniteFormQ::usage = "PositiveDefiniteFormQ[{a, b, c}] returns True if the form {a, b, c} is positive definite, and False otherwise";
 PrimitiveFormQ::usage = "PrimitiveFormQ[{a, b, c}] returns True if the form {a, b, c} is primitive, and False otherwise";
@@ -23,12 +24,19 @@ EquivalentFormsQ::usage = "EquivalentFormsQ[f, g] returns True if and only if th
 ReducedForms::usage = "ReducedForms[d] returns all reduced quadratic forms of discriminant d<0";
 ClassNumber::usage = "ClassNumber[d] returns the number of reduced qudratic forms of discriminant d<0";
 
+(* ::Subsubsubsection:: *)
+(*Elementary Genus Theory*)
+GenusRepresentatives::usage = "";
+SameGenusQ::usage = "";
+PrincipalForm::usage = "";
+DirichletComposition::usage = "";
 
 Begin["`Private`"];
 
 (* ::Subsection::Closed:: *)
-(*Fundamental Concepts*)
+(*Elementary Theory of Quadratic Forms*)
 
+Unprotect[Discriminant];
 Discriminant[{a_, b_, c_}] := b^2 - 4 a c
 Protect[Discriminant];
 
@@ -71,9 +79,71 @@ ReducedForms[d_Integer?Negative] /; (Mod[d, 4] == 2 || Mod[d, 4] == 3) := {}
 ClassNumber[d_Integer?Negative] := Length[ReducedForms[d]]
 
 (* ::Subsection::Closed:: *)
-(*Genus Theory*)
+(*Elementary Genus Theory*)
 
+GenusRepresentatives[form: {a_, b_, c_}] /; PrimitiveFormQ[form] := Module[
+	{disc = -Discriminant[form], bound},
+    bound = Ceiling[disc/2];
+	Select[Union@Flatten[Table[Mod[form . {x^2, x y, y^2}, disc], {x, -bound, bound}, {y, -bound, bound}]], GCD[disc, #] == 1&]
+]
 
+SameGenusQ[form1: {a1_, b1_, c1_}, form2: {a2_, b2_, c2_}] /; Discriminant[form1] == Discriminant[form2] := Equal@@(GenusRepresentatives/@{form1, form2})
+SameGenusQ[{a1_, b1_, c1_}, {a2_, b2_, c2_}] := False;
+
+PrincipalForm[d_Integer?Negative] /; Mod[d, 4] == 0 := {1, 0, -d/4}
+PrincipalForm[d_Integer?Negative] /; Mod[d, 4] == 1 := {1, 1, (1-d)/4}
+
+ClearAll[dirichletB];
+dirichletB[f1: {a1_, b1_, c2_}, f2: {a2_, b2_, c2_}] /; (Discriminant[f1] == Discriminant[f2] && GCD[a1, a2, (b1 + b2)/2] == 1) := Module[
+	{disc = Discriminant[f1]},
+	If[
+		b1 + b2 == 0,
+		SolveValues[(a2 b) == (a2 b1) && (a1 b) == (a1 b2), b, Modulus -> (2 a1 a2)][[1]],
+		SolveValues[(a2 b) == (a2 b1) && (a1 b) == (a1 b2) && (b1+b2)/2 b == (b1 b2 + disc)/2, b, Modulus -> (2 a1 a2)][[1]]
+	]
+]
+
+Options[DirichletComposition] = {"Reduce" -> False};
+
+(* Computes the Dirichlet composition of the forms f1 and f2 *)
+DirichletComposition[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}, ops: OptionsPattern[]] /; (Discriminant[f1] == Discriminant[f2]) && (GCD[a1, a2, (b1 + b2)/2] == 1) && ReducedFormQ[f1] && ReducedFormQ[f2] := Module[
+	{disc = Discriminant[f1], b = dirichletB[f1, f2], prod = a1 a2},
+	If[
+		OptionValue["Reduce"],
+		ReduceForm[{prod, b, (b^2 - disc)/(4 prod)}],
+		{prod, b, (b^2 - disc)/(4 prod)}
+	]
+]
+
+(* If the forms f1 and f2 do not satisfy the necessary congruence condition, f2 must be properly equivalent to a form f3 such that f1 and f3
+satisfy the necessary congruence condition *)
+DirichletComposition[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}, ops: OptionsPattern[]] /; Discriminant[f1] == Discriminant[f2] := Module[
+	{disc = Discriminant[f1], m, factors, residues, f3, p, q, r, s, b, prod},
+	(* Construct an integer m which is properly represented by f2 and coprime to a1 *)
+	factors = FactorInteger[a1][[;;, 1]];
+	residues = Table[
+		SelectFirst[
+			{{1, 0}, {0, 1}, {1, 1}},
+			GCD[# . {{a2, b2/2}, {b2/2, c2}} . #, i] == 1&
+		],
+		{i, factors}
+	];
+	{p, q} = {#1, #2}/GCD[#1, #2]&@@Table[ChineseRemainder[residues[[;;, i]], factors], {i, 2}];
+	m = {p, q} . {{a2, b2/2}, {b2/2, c2}} . {p, q};
+	(* Construct a qf f3(x,y)=mx^2+Bxy+Cy^2, which is properly equivalent to f2 *)
+	{s, r} = {#1, #2}&@@ExtendedGCD[p, q][[2]];
+	f3 = {m, 2a2 p r + b2 p s + b2 r q + 2c2 q s, {r, s} . {{a2, b2/2}, {b2/2, c2}} . {r, s}};
+	
+	(* By construction GCD[a1, m]=1, so we can compute the constant B which is needed to Dirichlet compose the forms f1 and f3 *)
+	b = dirichletB[f1, f3];
+	prod = a1 m;
+	
+	If[
+		OptionValue["Reduce"],
+		ReduceForm[{prod, b, (b^2 - disc)/(4 prod)}],
+		{prod, b, (b^2 - disc)/(4 prod)}
+	]
+]
 
 End[];
 EndPackage[];
