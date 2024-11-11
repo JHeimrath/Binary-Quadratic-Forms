@@ -36,18 +36,19 @@ Begin["`Private`"];
 (*Elementary Theory of Quadratic Forms*)
 
 QuadraticFormDiscriminant[{a_, b_, c_}] := b^2 - 4 a c
-QuadraticFormDiscriminant[form_List, forms__List] := QuadraticFormDiscriminant /@ {form, forms}
+QuadraticFormDiscriminant[f_List, forms__List] := QuadraticFormDiscriminant /@ {f, forms}
 
 PositiveDefiniteFormQ[{a_, b_, c_}] := (a > 0 && QuadraticFormDiscriminant[{a, b, c}] < 0)
 
 PrimitiveFormQ[{a_, b_, c_}] := (GCD[a, b, c] == 1)
 
-ReducedFormQ[form: {a_, b_, c_}] := (PrimitiveFormQ[form] && (Abs[b] <= a <= c) && If[Abs[b] == a || a == c, b >= 0, True])
+ReducedFormQ[f: {a_, b_, c_}] := (PrimitiveFormQ[f] && (Abs[b] <= a <= c) && If[Abs[b] == a || a == c, b >= 0, True])
+ReducedFormQ[f_List, forms__List] := And @@ (ReducedFormQ /@ {f, forms})
 
-ReduceForm[form: {a_, b_, c_}] /; PositiveDefiniteFormQ[form] && PrimitiveFormQ[form] := Module[
+ReduceForm[f: {a_, b_, c_}] /; PositiveDefiniteFormQ[f] && PrimitiveFormQ[f] := Module[
 	{a1, b1, c1, m},
 	(* Enforce a\[LessEqual]c *)
-	{a1, b1, c1} = If[a > c, {c, b, a}, form];
+	{a1, b1, c1} = If[a > c, {c, b, a}, f];
 	(* Enforce |b|\[LessEqual]a *)
 	{a1, b1, c1} = With[
 		{newVars = Minimize[Abs[2 a1 m + b1], m, Integers]},
