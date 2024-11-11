@@ -79,20 +79,14 @@ ClassNumber[d_Integer?Negative] := Length[ReducedForms[d]]
 (* ::Subsection::Closed:: *)
 (*Elementary Genus Theory*)
 
-GenusRepresentatives[form: {a_, b_, c_}] /; PrimitiveFormQ[form] := Module[
-	{disc = -QuadraticFormDiscriminant[form], bound},
-    bound = Ceiling[disc/2];
-	Select[Union@Flatten[Table[Mod[form . {x^2, x y, y^2}, disc], {x, -bound, bound}, {y, -bound, bound}]], GCD[disc, #] == 1&]
-]
+(* ::Subsubsection::Closed:: *)
+(*Helper Functions*)
+ClearAll[equalDiscriminantQ, dirichletB]
 
-SameGenusQ[form1: {a1_, b1_, c1_}, form2: {a2_, b2_, c2_}] /; QuadraticFormDiscriminant[form1] == QuadraticFormDiscriminant[form2] := Equal@@(GenusRepresentatives/@{form1, form2})
-SameGenusQ[{a1_, b1_, c1_}, {a2_, b2_, c2_}] := False;
-
-PrincipalForm[d_Integer?Negative] /; Mod[d, 4] == 0 := {1, 0, -d/4}
-PrincipalForm[d_Integer?Negative] /; Mod[d, 4] == 1 := {1, 1, (1-d)/4}
+equalDiscriminantQ[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}] := Equal @@ QuadraticFormDiscriminant[f1, f2]
 
 ClearAll[dirichletB];
-dirichletB[f1: {a1_, b1_, c2_}, f2: {a2_, b2_, c2_}] /; (QuadraticFormDiscriminant[f1] == QuadraticFormDiscriminant[f2] && GCD[a1, a2, (b1 + b2)/2] == 1) := Module[
+dirichletB[f1: {a1_, b1_, c2_}, f2: {a2_, b2_, c2_}] /; (equalDiscriminantQ[f1, f2] && GCD[a1, a2, (b1 + b2)/2] == 1) := Module[
 	{disc = QuadraticFormDiscriminant[f1]},
 	If[
 		b1 + b2 == 0,
