@@ -96,10 +96,25 @@ dirichletB[f1: {a1_, b1_, c2_}, f2: {a2_, b2_, c2_}] /; (equalDiscriminantQ[f1, 
 	]
 ]
 
+(* ::Subsubsection:: *)
+(*Main Functions*)
+
+GenusRepresentatives[f: {a_, b_, c_}] /; PrimitiveFormQ[f] := Module[
+	{disc = -QuadraticFormDiscriminant[f], bound},
+    bound = Ceiling[disc/2];
+	Select[Union@Flatten[Table[Mod[f . {x^2, x y, y^2}, disc], {x, -bound, bound}, {y, -bound, bound}]], GCD[disc, #] == 1&]
+]
+
+SameGenusQ[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}] /; equalDiscriminantQ[f1, f2] := Equal @@ (GenusRepresentatives /@ {f1, f2})
+SameGenusQ[{a1_, b1_, c1_}, {a2_, b2_, c2_}] := False;
+
+PrincipalForm[d_Integer?Negative] /; Mod[d, 4] == 0 := {1, 0, -d/4}
+PrincipalForm[d_Integer?Negative] /; Mod[d, 4] == 1 := {1, 1, (1-d)/4}
+
 Options[DirichletComposition] = {"Reduce" -> False};
 
 (* Computes the Dirichlet composition of the forms f1 and f2 *)
-DirichletComposition[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}, ops: OptionsPattern[]] /; (QuadraticFormDiscriminant[f1] == QuadraticFormDiscriminant[f2]) && (GCD[a1, a2, (b1 + b2)/2] == 1) && ReducedFormQ[f1] && ReducedFormQ[f2] := Module[
+DirichletComposition[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}, ops: OptionsPattern[]] /; equalDiscriminantQ[f1, f2] && GCD[a1, a2, (b1 + b2)/2] == 1 && ReducedFormQ[f1, f2] (*&& ReducedFormQ[f2]*) := Module[
 	{disc = QuadraticFormDiscriminant[f1], b = dirichletB[f1, f2], prod = a1 a2},
 	If[
 		OptionValue["Reduce"],
@@ -110,7 +125,7 @@ DirichletComposition[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}, ops: OptionsPatte
 
 (* If the forms f1 and f2 do not satisfy the necessary congruence condition, f2 must be properly equivalent to a form f3 such that f1 and f3
 satisfy the necessary congruence condition *)
-DirichletComposition[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}, ops: OptionsPattern[]] /; QuadraticFormDiscriminant[f1] == QuadraticFormDiscriminant[f2] := Module[
+DirichletComposition[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}, ops: OptionsPattern[]] /; equalDiscriminantQ[f1, f2] := Module[
 	{disc = QuadraticFormDiscriminant[f1], m, factors, residues, f3, p, q, r, s, b, prod},
 	(* Construct an integer m which is properly represented by f2 and coprime to a1 *)
 	factors = FactorInteger[a1][[;;, 1]];
@@ -121,10 +136,10 @@ DirichletComposition[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}, ops: OptionsPatte
 		],
 		{i, factors}
 	];
-	{p, q} = {#1, #2}/GCD[#1, #2]&@@Table[ChineseRemainder[residues[[;;, i]], factors], {i, 2}];
+	{p, q} = {#1, #2}/GCD[#1, #2]& @@ Table[ChineseRemainder[residues[[;;, i]], factors], {i, 2}];
 	m = {p, q} . {{a2, b2/2}, {b2/2, c2}} . {p, q};
 	(* Construct a qf f3(x,y)=mx^2+Bxy+Cy^2, which is properly equivalent to f2 *)
-	{s, r} = {#1, #2}&@@ExtendedGCD[p, q][[2]];
+	{s, r} = {#1, #2}& @@ ExtendedGCD[p, q][[2]];
 	f3 = {m, 2a2 p r + b2 p s + b2 r q + 2c2 q s, {r, s} . {{a2, b2/2}, {b2/2, c2}} . {r, s}};
 	
 	(* By construction GCD[a1, m]=1, so we can compute the constant B which is needed to Dirichlet compose the forms f1 and f3 *)
