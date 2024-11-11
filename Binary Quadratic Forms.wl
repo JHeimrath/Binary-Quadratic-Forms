@@ -89,8 +89,8 @@ ClearAll[equalDiscriminantQ, dirichletB]
 equalDiscriminantQ[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}] := Equal @@ QuadraticFormDiscriminant[f1, f2]
 
 ClearAll[dirichletB];
-dirichletB[f1: {a1_, b1_, c2_}, f2: {a2_, b2_, c2_}] /; (equalDiscriminantQ[f1, f2] && GCD[a1, a2, (b1 + b2)/2] == 1) := Module[
-	{disc = QuadraticFormDiscriminant[f1]},
+dirichletB[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}] /; equalDiscriminantQ[f1, f2] && (GCD[a1, a2, (b1 + b2)/2] == 1) := Module[
+	{disc = QuadraticFormDiscriminant[f1], b},
 	If[
 		b1 + b2 == 0,
 		SolveValues[(a2 b) == (a2 b1) && (a1 b) == (a1 b2), b, Modulus -> (2 a1 a2)][[1]],
