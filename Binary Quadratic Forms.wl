@@ -12,7 +12,7 @@
 BeginPackage["QuadraticForms`"];
 (*Throughout this package, when talking about a (quadratic) form {a, b, c}, we will mean the quadratic form ax^2+bxy+cy^2*)
 ClearAll[QuadraticFormDiscriminant, PositiveDefiniteFormQ, PositiveDefiniteFormQ, PrimitiveFormQ, ReducedFormQ, ReduceForm, EquivalentFormsQ,
-ReducedForms, ClassNumber, GenusRepresentatives, SameGenusQ, PrincipalForm, DirichletComposition]
+ReducedForms, ClassNumber, GenusRepresentatives, SameGenusQ, PrincipalForm, DirichletComposition, ClassGroup]
 
 (* ::Subsubsubsection:: *)
 (*Elementary Theory of Quadratic Forms*)
@@ -31,6 +31,7 @@ GenusRepresentatives::usage = "GenusRepresentatives[f] returns the values repres
 SameGenusQ::usage = "SameGenusQ[f, g] returns True if the forms f and g belong to the same genus, and False otherwise";
 PrincipalForm::usage = "PrincipalForm[d] returns the principle form of discriminant d";
 DirichletComposition::usage = "DirichletComposition[f, g] returns the Dirichlet Composition of the forms f and g";
+ClassGroup::usage = "ClassGroup[d] returns the multiplication table for the Class Group of discriminant d";
 
 Begin["`Private`"];
 
@@ -154,6 +155,30 @@ DirichletComposition[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}, ops: OptionsPatte
 		{prod, b, (b^2 - disc)/(4 prod)}
 	]
 ]
+
+ClassGroup[d_Integer?Negative] /; Mod[d, 4] == 0 || Mod[d, 4] == 1 := Module[
+	{classes = ReducedForms[d], classNumber},
+	classNumber = Length[classes];
+	Grid[
+		Table[
+			Which[
+				i == j == 1,
+					Null,
+				i == 1,
+					classes[[j - 1]],
+				j == 1,
+					classes[[i - 1]],
+				True,
+					DirichletComposition[classes[[j - 1]], classes[[i - 1]], "Reduce" -> True]
+			],
+			{i, classNumber + 1},
+			{j, classNumber + 1}
+		],
+		Dividers -> {2 -> True, 2 -> True}
+	]
+]
+
+ClassGroup[d_Integer] := {}
 
 End[];
 EndPackage[];
