@@ -38,6 +38,23 @@ Begin["`Private`"];
 (* ::Subsection::Closed:: *)
 (*Elementary Theory of Quadratic Forms*)
 
+(* ::Subsubsection::Closed:: *)
+(*Helper Functions*)
+ClearAll[matrixForm, sl2Action];
+
+matrixForm[{a_, b_, c_}] := {{a, b/2}, {b/2, c}}
+
+sl2Action[m_, f_] := Block[
+	{x, y},
+	With[
+		{u = x^2, v = x y, w = y^2},
+		Coefficient[m.{x, y}.matrixForm[f].m.{x, y}, #]& /@ {u, v, w}
+	]
+]
+
+(* ::Subsubsection::Closed:: *)
+(*Helper Functions*)
+
 QuadraticFormDiscriminant[{a_, b_, c_}] := b^2 - 4 a c
 QuadraticFormDiscriminant[f_List, forms__List] := QuadraticFormDiscriminant /@ {f, forms}
 
@@ -85,18 +102,32 @@ ClassNumber[d_Integer?Negative] := Length[ReducedForms[d]]
 
 (* ::Subsubsection::Closed:: *)
 (*Helper Functions*)
-ClearAll[equalDiscriminantQ, dirichletB]
+ClearAll[equalDiscriminantQ, dirichletB, coprimeRepresentative]
 
 equalDiscriminantQ[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}] := Equal @@ QuadraticFormDiscriminant[f1, f2]
 
-ClearAll[dirichletB];
 dirichletB[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}] /; equalDiscriminantQ[f1, f2] && (GCD[a1, a2, (b1 + b2)/2] == 1) := Module[
 	{disc = QuadraticFormDiscriminant[f1], b},
+	(* SelectFirst[Range[0, 2a1 a2 - 1], Mod[# - b1, 2a1] == Mod[# - b2, 2a2] == Mod[#^2 - disc, 4a1 a2] == 0&] *)
+	(* The above method is a brute force method, even if it's reasoanbly efficient. This is not brute force, but is buggy. *)
 	If[
 		b1 + b2 == 0,
 		SolveValues[(a2 b) == (a2 b1) && (a1 b) == (a1 b2), b, Modulus -> (2 a1 a2)][[1]],
 		SolveValues[(a2 b) == (a2 b1) && (a1 b) == (a1 b2) && (b1+b2)/2 b == (b1 b2 + disc)/2, b, Modulus -> (2 a1 a2)][[1]]
 	]
+]
+
+coprimeRepresentative[f_, M_] := Module[
+	{factors = FactorInteger[M][[;;, 1]], remainders, p, q},
+	remainders = Table[
+		SelectFirst[
+			{{1, 0}, {0, 1}, {1, 1}},
+			GCD[# . matrixForm[f] . #, i] == 1&
+		],
+		{i, factors}
+	];
+	{p, q} = {#1, #2}/GCD[#1, #2]& @@ Table[ChineseRemainder[remainders[[;;, i]], factors], {i, 2}];
+	{{p, q}.matrixForm[f].{p, q}, {p, q}}
 ]
 
 (* ::Subsubsection:: *)
@@ -118,36 +149,29 @@ Options[DirichletComposition] = {"Reduce" -> False};
 
 (* Computes the Dirichlet composition of the forms f1 and f2 *)
 DirichletComposition[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}, ops: OptionsPattern[]] /; equalDiscriminantQ[f1, f2] && ReducedFormQ[f1, f2] && GCD[a1, a2, (b1 + b2)/2] == 1 := Module[
-	{disc = QuadraticFormDiscriminant[f1], b = dirichletB[f1, f2], prod = a1 a2},
+	{disc = QuadraticFormDiscriminant[f1], b = dirichletB[f1, f2], prod = a1 a2, f3},
+	f3 = {prod, b, (b^2 - disc)/(4 prod)};
 	If[
-		OptionValue["Reduce"],
-		ReduceForm[{prod, b, (b^2 - disc)/(4 prod)}],
-		{prod, b, (b^2 - disc)/(4 prod)}
+		OptionValue["Reduce"] && !ReducedFormQ[f3],
+		ReduceForm[f3],
+		f3
 	]
 ]
 
 (* If the forms f1 and f2 do not satisfy the necessary congruence condition, f2 must be properly equivalent to a form f3 such that f1 and f3
 satisfy the necessary congruence condition *)
 DirichletComposition[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}, ops: OptionsPattern[]] /; equalDiscriminantQ[f1, f2] && ReducedFormQ[f1, f2] := Module[
-	{disc = QuadraticFormDiscriminant[f1], m, factors, residues, f3, p, q, r, s, b, prod},
+	{disc = QuadraticFormDiscriminant[f1], m, m1, factors, residues, f3, p, q, r, s, b, prod},
 	(* Construct an integer m which is properly represented by f2 and coprime to a1 *)
-	factors = FactorInteger[a1][[;;, 1]];
-	residues = Table[
-		SelectFirst[
-			{{1, 0}, {0, 1}, {1, 1}},
-			GCD[# . {{a2, b2/2}, {b2/2, c2}} . #, i] == 1&
-		],
-		{i, factors}
-	];
-	{p, q} = {#1, #2}/GCD[#1, #2]& @@ Table[ChineseRemainder[residues[[;;, i]], factors], {i, 2}];
-	m = {p, q} . {{a2, b2/2}, {b2/2, c2}} . {p, q};
+	{m, {p, q}} = coprimeRepresentative[f2, a1];
 	(* Construct a form f3(x,y)=mx^2+Bxy+Cy^2, which is properly equivalent to f2 *)
-	{s, r} = {#1, #2}& @@ ExtendedGCD[p, q][[2]];
-	f3 = {m, 2a2 p r + b2 p s + b2 r q + 2c2 q s, {r, s} . {{a2, b2/2}, {b2/2, c2}} . {r, s}};
+	{s, r} = {#1, -#2}& @@ ExtendedGCD[p, q][[2]];
+	(* f3 = {#1, #2, #3}/GCD[#1, #2, #3]& @@ {m, 2a2 p r + b2 p s + b2 r q + 2c2 q s, {r, s}.matrixForm[f2].{r, s}}; *)
+	f3 = sl2Action[{{p, q}, {r, s}}, f2];
 	
 	(* By construction GCD[a1, m]=1, so we can compute the constant b which is needed to Dirichlet compose the forms f1 and f3 *)
 	b = dirichletB[f1, f3];
-	prod = a1 m;
+	prod = a1 f3[[1]];
 	
 	If[
 		OptionValue["Reduce"],
