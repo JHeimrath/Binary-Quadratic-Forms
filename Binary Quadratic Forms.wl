@@ -192,7 +192,7 @@ DirichletComposition[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}, ops: OptionsPatte
 (* If the forms f1 and f2 do not satisfy the necessary congruence condition, f2 must be properly equivalent to a form f3 such that f1 and f3
 satisfy the necessary congruence condition *)
 DirichletComposition[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}, ops: OptionsPattern[]] /; equalDiscriminantQ[f1, f2] && ReducedFormQ[f1, f2] := Module[
-	{disc = QuadraticFormDiscriminant[f1], m, m1, factors, residues, f3, p, q, r, s, b, prod},
+	{disc = QuadraticFormDiscriminant[f1], m, f3, p, q, r, s, b, prod},
 	(* Construct an integer m which is properly represented by f2 and coprime to a1 *)
 	{m, {p, q}} = coprimeRepresentative[f2, a1];
 	(* Construct a form f3(x,y)=mx^2+Bxy+Cy^2, which is properly equivalent to f2 *)
@@ -209,6 +209,8 @@ DirichletComposition[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}, ops: OptionsPatte
 		{prod, b, (b^2 - disc)/(4 prod)}
 	]
 ]
+
+DirichletComposition[f1_, f2_, ops: OptionsPattern[]] /; equalDiscriminantQ[f1, f2] := DirichletComposition[#1, #2, ops]& @@ (ReduceForm /@ {f1, f2})
 
 ClassGroup[d_Integer?Negative] /; Mod[d, 4] == 0 || Mod[d, 4] == 1 := Module[
 	{classes = ReducedForms[d], classNumber},
