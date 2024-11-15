@@ -66,21 +66,52 @@ ReducedFormQ[f: {a_, b_, c_}] := (PrimitiveFormQ[f] && (Abs[b] <= a <= c) && If[
 ReducedFormQ[f_List, forms__List] := And @@ (ReducedFormQ /@ {f, forms})
 
 ReduceForm[f: {a_, b_, c_}] /; PositiveDefiniteFormQ[f] && PrimitiveFormQ[f] := Module[
-	{a1, b1, c1, m},
-	(* Enforce a\[LessEqual]c *)
-	{a1, b1, c1} = If[a > c, {c, b, a}, f];
-	(* Enforce |b|\[LessEqual]a *)
-	{a1, b1, c1} = With[
-		{newVars = Minimize[Abs[2 a1 m + b1], m, Integers]},
-		{a1, newVars[[1]], c1 + b1 m + a1 m^2} /. newVars[[2]]
-	];
-	(* Repeat the process, if necessary *)
-	If[
-		ReducedFormQ[{a1, b1, c1}],
-		{a1, b1, c1},
-		ReduceForm[{a1, b1, c1}]
+	{a1 = a, b1 = b, c1 = c, m, rule},
+	Which[
+		(* Ensure a\[LessEqual]c *)
+		a1 > c1,
+			ReduceForm[sl2Action[{{0, -1}, {1, 0}}, f]],
+		(* Ensure |b|\[LessEqual]a *)
+		Abs[b1] > a1,
+			{rule} = Minimize[Abs[b1 + 2a1 m], m, Integers][[2]];
+			ReduceForm[sl2Action[{{1, m}, {0, 1}}, {a1, b1, c1}] /. rule],
+		(* Ensure b>0 if |b|==a *)
+		b1 == -a1,
+			ReduceForm[sl2Action[{{1, 1}, {0, 1}}, {a1, b1, c1}]],
+		True,
+			{a1, b1, c1}
 	]
 ]
+
+(* Keeping the old implementation for now, might remove later *)
+(* ReduceForm[f: {a_, b_, c_}] /; PositiveDefiniteFormQ[f] && PrimitiveFormQ[f] := Module[
+	{a1 = a, b1 = b, c1 = c, m, rule},
+	(* Ensure a\[LessEqual]c *)
+	{a1, b1, c1} = If[
+		a1 > c1,
+		sl2Action[{{0, -1}, {1, 0}}, f],
+		{a1, b1, c1}
+	];
+	(* Ensure |b|\[LessEqual]a *)
+	{a1, b1, c1} = If[
+		Abs[b1] > a1,
+		{rule} = Minimize[Abs[b1 + 2a1 m], m, Integers][[2]];
+		sl2Action[{{1, m}, {0, 1}}, {a1, b1, c1}] /. rule,
+		{a1, b1, c1}
+	];
+	(* Ensure b>0 if |b|==a *)
+	{a1, b1, c1} = If[
+		b1 == -a1,
+		sl2Action[{{1, 1}, {0, 1}}, {a1, b1, c1}],
+		{a1, b1, c1}
+	];
+	(* Repeat procedure, if necessary *)
+	If[
+		!ReducedFormQ[{a1, b1, c1}],
+		ReduceForm[{a1, b1, c1}],
+		{a1, b1, c1}
+	]
+] *)
 
 EquivalentFormsQ[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}] := (ReduceForm[f1] === ReduceForm[f2])
 
@@ -166,8 +197,7 @@ DirichletComposition[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}, ops: OptionsPatte
 	{m, {p, q}} = coprimeRepresentative[f2, a1];
 	(* Construct a form f3(x,y)=mx^2+Bxy+Cy^2, which is properly equivalent to f2 *)
 	{s, r} = {#1, -#2}& @@ ExtendedGCD[p, q][[2]];
-	(* f3 = {#1, #2, #3}/GCD[#1, #2, #3]& @@ {m, 2a2 p r + b2 p s + b2 r q + 2c2 q s, {r, s}.matrixForm[f2].{r, s}}; *)
-	f3 = sl2Action[{{p, q}, {r, s}}, f2];
+	f3 = {#1, #2, #3}/GCD[#1, #2, #3]& @@ {m, 2a2 p r + b2 p s + b2 r q + 2c2 q s, {r, s}.matrixForm[f2].{r, s}};
 	
 	(* By construction GCD[a1, m]=1, so we can compute the constant b which is needed to Dirichlet compose the forms f1 and f3 *)
 	b = dirichletB[f1, f3];
