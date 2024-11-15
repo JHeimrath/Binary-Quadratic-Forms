@@ -148,8 +148,8 @@ dirichletB[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}] /; equalDiscriminantQ[f1, f
 	]
 ]
 
-coprimeRepresentative[f_, M_] := Module[
-	{factors = FactorInteger[M][[;;, 1]], remainders, p, q},
+coprimeRepresentative[f_, m_] := Module[
+	{factors = FactorInteger[m][[;;, 1]], remainders, p, q},
 	remainders = Table[
 		SelectFirst[
 			{{1, 0}, {0, 1}, {1, 1}},
