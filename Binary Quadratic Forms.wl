@@ -212,8 +212,10 @@ DirichletComposition[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}, ops: OptionsPatte
 
 DirichletComposition[f1_, f2_, ops: OptionsPattern[]] /; equalDiscriminantQ[f1, f2] := DirichletComposition[#1, #2, ops]& @@ (ReduceForm /@ {f1, f2})
 
-ClassGroup[d_Integer?Negative] /; Mod[d, 4] == 0 || Mod[d, 4] == 1 := Module[
-	{classes = ReducedForms[d], classNumber},
+Options[ClassGroup] = Union[FilterRules[Options[Grid], Except[{Dividers, ItemSize}]], {Dividers -> {2 -> True, 2 -> True}, ItemSize -> Full}];
+
+ClassGroup[d_Integer?Negative, ops: OptionsPattern[]] /; Mod[d, 4] == 0 || Mod[d, 4] == 1 := Module[
+	{classes = ReducedForms[d], classNumber, options = FilterRules[{ops}, Except[{Dividers, ItemSize}]]},
 	classNumber = Length[classes];
 	Grid[
 		Table[
@@ -230,7 +232,9 @@ ClassGroup[d_Integer?Negative] /; Mod[d, 4] == 0 || Mod[d, 4] == 1 := Module[
 			{i, classNumber + 1},
 			{j, classNumber + 1}
 		],
-		Dividers -> {2 -> True, 2 -> True}
+		Dividers -> OptionValue[Dividers],
+		ItemSize -> OptionValue[ItemSize],
+		options
 	]
 ]
 
