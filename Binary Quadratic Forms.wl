@@ -13,7 +13,7 @@ BeginPackage["QuadraticForms`"];
 (*Throughout this package, when talking about a (quadratic) form {a, b, c}, we will mean the quadratic form ax^2+bxy+cy^2*)
 ClearAll[QuadraticFormDiscriminant, PositiveDefiniteFormQ, PositiveDefiniteFormQ, PrimitiveFormQ, ReducedFormQ, ReduceForm, EquivalentFormsQ,
 ReducedForms, ClassNumber, GenusRepresentatives, SameGenusQ, PrincipalForm, DirichletComposition, ClassGroup, QuadraticCharacter, SelfInverseForms,
-GenusNumber]
+GenusNumber, PrincipalGenus]
 
 (* ::Subsubsubsection:: *)
 (*Elementary Theory of Quadratic Forms*)
@@ -39,6 +39,7 @@ SelfInverseForms::usage = "SelfInverseForms[d] returns the reduced forms of orde
 GenusNumber::usage = "GenusNumber[d] returns the number of genera of forms of discriminant d"
 GenusRepresentatives::usage = "GenusRepresentatives[f] returns the values represented by the genus containing the form f";
 SameGenusQ::usage = "SameGenusQ[f, g] returns True if the forms f and g belong to the same genus, and False otherwise";
+PrincipalGenus::usage = "PrincipalGenus[d] returns the principle genus of discriminant d";
 
 Begin["`Private`"];
 
@@ -253,6 +254,8 @@ GenusRepresentatives[f: {a_, b_, c_}] /; PrimitiveFormQ[f] := Module[
 
 SameGenusQ[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}] /; equalDiscriminantQ[f1, f2] := Equal @@ (GenusRepresentatives /@ {f1, f2})
 SameGenusQ[{a1_, b1_, c1_}, {a2_, b2_, c2_}] := False;
+
+PrincipalGenus[d_Integer] /; discriminantQ[d] := Union[DirichletComposition[#, #, "Reduce" -> True]& /@ ReducedForms[d]]
 
 End[];
 EndPackage[];
