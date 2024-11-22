@@ -28,7 +28,7 @@ PrincipalForm::usage = "PrincipalForm[d] returns the principle form of discrimin
 
 (* ::Subsubsubsection:: *)
 (*Class Group Structure*)
-ClassNumber::usage = "ClassNumber[d] returns the number of reduced qudratic forms of discriminant d<0";
+ClassNumber::usage = "ClassNumber[d] returns the number of reduced quadratic forms of discriminant d<0";
 DirichletComposition::usage = "DirichletComposition[f, g] returns the Dirichlet Composition of the forms f and g";
 ClassGroup::usage = "ClassGroup[d] returns the multiplication table for the Class Group of discriminant d";
 QuadraticCharacter::usage = "QuadraticCharacter[n, d] returns the Dirichlet character associated to the discriminant d"
@@ -122,7 +122,7 @@ ClearAll[dirichletB];
 dirichletB[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}] /; equalDiscriminantQ[f1, f2] && (GCD[a1, a2, (b1 + b2)/2] == 1) := Module[
 	{disc = QuadraticFormDiscriminant[f1], b},
 	(* SelectFirst[Range[0, 2a1 a2 - 1], Mod[# - b1, 2a1] == Mod[# - b2, 2a2] == Mod[#^2 - disc, 4a1 a2] == 0&] *)
-	(* The above method is a brute force method, even if it's reasoanbly efficient. This is not brute force, but is buggy. *)
+	(* The above method is a brute force method, even if it's reasonably efficient. This is not brute force, but is buggy. *)
 	If[
 		b1 + b2 == 0,
 		SolveValues[(a2 b) == (a2 b1) && (a1 b) == (a1 b2), b, Modulus -> (2 a1 a2)][[1]],
@@ -270,7 +270,7 @@ CompleteCharacter[f: {a_, b_, c_}] := Module[
 			evaluatedCharacters,
 		Mod[n, 4] == 1 || Mod[n, 8] == 4,
 			Join[
-				evaluatedCharacterss,
+				evaluatedCharacters,
 				{delta[m]}
 			],
 		Mod[n, 8] == 2,
