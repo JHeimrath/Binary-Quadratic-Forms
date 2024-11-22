@@ -251,5 +251,20 @@ SelfInverseForms[d_Integer] /; discriminantQ[d] := Cases[
 ]
 
 
+GenusNumber[d_] /; discriminantQ[d] := Module[
+	{r = Length[Cases[FactorInteger[d], {p_, _} /; p > 2 :> p]], n = -d / 4, exp},
+	exp = Which[
+		Mod[d, 4] == 1,
+			r,
+		Mod[n, 4] == 3,
+			r,
+		Mod[n, 8] =!= 0,
+			r + 1,
+		True,
+			r + 2
+	];
+	2^(exp - 1)
+]
+
 End[];
 EndPackage[];
