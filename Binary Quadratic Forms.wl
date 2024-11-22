@@ -172,7 +172,7 @@ DirichletComposition[f1_, f2_, ops: OptionsPattern[]] /; equalDiscriminantQ[f1, 
 
 Options[ClassGroup] = Union[FilterRules[Options[Grid], Except[{Dividers, ItemSize}]], {Dividers -> {2 -> True, 2 -> True}, ItemSize -> Full}];
 
-ClassGroup[d_Integer?Negative, ops: OptionsPattern[]] /; discriminantQ[d] := Module[
+ClassGroup[d_Integer, ops: OptionsPattern[]] /; discriminantQ[d] := Module[
 	{classes = ReducedForms[d], classNumber, options = FilterRules[{ops}, Except[{Dividers, ItemSize}]]},
 	classNumber = Length[classes];
 	Grid[
@@ -231,7 +231,7 @@ coprimeRepresentative[f_, m_] := Module[
 (* ::Subsubsection:: *)
 (*Main Functions*)
 
-GenusNumber[d_] /; discriminantQ[d] := Module[
+GenusNumber[d_Integer] /; discriminantQ[d] := Module[
 	{r = Length[Cases[FactorInteger[d], {p_, _} /; p > 2 :> p]], n = -d / 4, exp},
 	exp = Which[
 		Mod[d, 4] == 1,
