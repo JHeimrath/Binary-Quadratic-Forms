@@ -240,5 +240,10 @@ ClassGroup[d_Integer?Negative, ops: OptionsPattern[]] /; Mod[d, 4] == 0 || Mod[d
 
 ClassGroup[d_Integer] := {}
 
+QuadraticCharacter[n_Integer, d_Integer] /; discriminantQ[d] && CoprimeQ[n, d]:= Module[
+	{p},
+	JacobiSymbol[d, p] /. FindInstance[Mod[p - n, d] == 0 && Mod[p, 2] == 1, p, Primes][[1]]
+]
+
 End[];
 EndPackage[];
