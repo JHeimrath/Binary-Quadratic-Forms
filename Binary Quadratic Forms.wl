@@ -245,5 +245,11 @@ QuadraticCharacter[n_Integer, d_Integer] /; discriminantQ[d] && CoprimeQ[n, d]:=
 	JacobiSymbol[d, p] /. FindInstance[Mod[p - n, d] == 0 && Mod[p, 2] == 1, p, Primes][[1]]
 ]
 
+SelfInverseForms[d_Integer] /; discriminantQ[d] := Cases[
+	ReducedForms[d],
+	f: {a_, b_, c_} /; b == 0 || a == b || a == c :> f
+]
+
+
 End[];
 EndPackage[];
