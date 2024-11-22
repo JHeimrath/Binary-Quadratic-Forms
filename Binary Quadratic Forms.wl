@@ -94,36 +94,6 @@ ReduceForm[f: {a_, b_, c_}] /; PositiveDefiniteFormQ[f] && PrimitiveFormQ[f] := 
 	]
 ]
 
-(* Keeping the old implementation for now, might remove later *)
-(* ReduceForm[f: {a_, b_, c_}] /; PositiveDefiniteFormQ[f] && PrimitiveFormQ[f] := Module[
-	{a1 = a, b1 = b, c1 = c, m, rule},
-	(* Ensure a\[LessEqual]c *)
-	{a1, b1, c1} = If[
-		a1 > c1,
-		sl2Action[{{0, -1}, {1, 0}}, f],
-		{a1, b1, c1}
-	];
-	(* Ensure |b|\[LessEqual]a *)
-	{a1, b1, c1} = If[
-		Abs[b1] > a1,
-		{rule} = Minimize[Abs[b1 + 2a1 m], m, Integers][[2]];
-		sl2Action[{{1, m}, {0, 1}}, {a1, b1, c1}] /. rule,
-		{a1, b1, c1}
-	];
-	(* Ensure b>0 if |b|==a *)
-	{a1, b1, c1} = If[
-		b1 == -a1,
-		sl2Action[{{1, 1}, {0, 1}}, {a1, b1, c1}],
-		{a1, b1, c1}
-	];
-	(* Repeat procedure, if necessary *)
-	If[
-		!ReducedFormQ[{a1, b1, c1}],
-		ReduceForm[{a1, b1, c1}],
-		{a1, b1, c1}
-	]
-] *)
-
 EquivalentFormsQ[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}] := (ReduceForm[f1] === ReduceForm[f2])
 
 ReducedForms[d_Integer] /; discriminantQ[d] := Module[
