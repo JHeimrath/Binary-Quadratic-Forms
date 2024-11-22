@@ -12,7 +12,8 @@
 BeginPackage["QuadraticForms`"];
 (*Throughout this package, when talking about a (quadratic) form {a, b, c}, we will mean the quadratic form ax^2+bxy+cy^2*)
 ClearAll[QuadraticFormDiscriminant, PositiveDefiniteFormQ, PositiveDefiniteFormQ, PrimitiveFormQ, ReducedFormQ, ReduceForm, EquivalentFormsQ,
-ReducedForms, ClassNumber, GenusRepresentatives, SameGenusQ, PrincipalForm, DirichletComposition, ClassGroup]
+ReducedForms, ClassNumber, GenusRepresentatives, SameGenusQ, PrincipalForm, DirichletComposition, ClassGroup, QuadraticCharacter, SelfInverseForms,
+GenusNumber]
 
 (* ::Subsubsubsection:: *)
 (*Elementary Theory of Quadratic Forms*)
@@ -23,15 +24,21 @@ ReducedFormQ::usage = "ReducedFormQ[{a, b, c}] returns True if the form {a, b, c
 ReduceForm::usage = "ReduceForm[{a, b, c}] returns the unique reduced form {a1, b1, c1} which is properly equivalent to {a, b, c}";
 EquivalentFormsQ::usage = "EquivalentFormsQ[f, g] returns True if and only if the forms f and g are properly equivalent";
 ReducedForms::usage = "ReducedForms[d] returns all reduced quadratic forms of discriminant d<0";
+PrincipalForm::usage = "PrincipalForm[d] returns the principle form of discriminant d";
+
+(* ::Subsubsubsection:: *)
+(*Class Group Structure*)
 ClassNumber::usage = "ClassNumber[d] returns the number of reduced qudratic forms of discriminant d<0";
+DirichletComposition::usage = "DirichletComposition[f, g] returns the Dirichlet Composition of the forms f and g";
+ClassGroup::usage = "ClassGroup[d] returns the multiplication table for the Class Group of discriminant d";
+QuadraticCharacter::usage = "QuadraticCharacter[n, d] returns the Dirichlet character associated to the discriminant d"
+SelfInverseForms::usage = "SelfInverseForms[d] returns the reduced forms of order at most 2 in the class group C(D)"
 
 (* ::Subsubsubsection:: *)
 (*Elementary Genus Theory*)
+GenusNumber::usage = "GenusNumber[d] returns the number of genera of forms of discriminant d"
 GenusRepresentatives::usage = "GenusRepresentatives[f] returns the values represented by the genus containing the form f";
 SameGenusQ::usage = "SameGenusQ[f, g] returns True if the forms f and g belong to the same genus, and False otherwise";
-PrincipalForm::usage = "PrincipalForm[d] returns the principle form of discriminant d";
-DirichletComposition::usage = "DirichletComposition[f, g] returns the Dirichlet Composition of the forms f and g";
-ClassGroup::usage = "ClassGroup[d] returns the multiplication table for the Class Group of discriminant d";
 
 Begin["`Private`"];
 
@@ -40,7 +47,9 @@ Begin["`Private`"];
 
 (* ::Subsubsection::Closed:: *)
 (*Helper Functions*)
-ClearAll[matrixForm, sl2Action];
+ClearAll[equalDiscriminantQ, matrixForm, sl2Action, discriminantQ];
+
+equalDiscriminantQ[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}] := Equal @@ QuadraticFormDiscriminant[f1, f2]
 
 matrixForm[{a_, b_, c_}] := {{a, b/2}, {b/2, c}}
 
@@ -52,8 +61,10 @@ sl2Action[m_, f_] := Block[
 	]
 ]
 
+discriminantQ[d_] := d < 0 && (Mod[d, 4] == 0 || Mod[d, 4] == 1)
+
 (* ::Subsubsection::Closed:: *)
-(*Helper Functions*)
+(*Main Functions*)
 
 QuadraticFormDiscriminant[{a_, b_, c_}] := b^2 - 4 a c
 QuadraticFormDiscriminant[f_List, forms__List] := QuadraticFormDiscriminant /@ {f, forms}
@@ -115,7 +126,7 @@ ReduceForm[f: {a_, b_, c_}] /; PositiveDefiniteFormQ[f] && PrimitiveFormQ[f] := 
 
 EquivalentFormsQ[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}] := (ReduceForm[f1] === ReduceForm[f2])
 
-ReducedForms[d_Integer?Negative] /; (Mod[d, 4] == 0 || Mod[d, 4] == 1) := Module[
+ReducedForms[d_Integer] /; discriminantQ[d] := Module[
 	{a, b, c, bound = Sqrt[-d/3]},
 	a = Range[1, bound];
 	b = Select[Range[-a, a], (Mod[#, 2] == Mod[d, 4])&];
@@ -124,18 +135,17 @@ ReducedForms[d_Integer?Negative] /; (Mod[d, 4] == 0 || Mod[d, 4] == 1) := Module
 		{p_Integer, q_Integer, {r_Integer}} /; ReducedFormQ[{p, q, r}] :> {p, q, r}
 	]
 ]
-ReducedForms[d_Integer?Negative] /; (Mod[d, 4] == 2 || Mod[d, 4] == 3) := {}
+ReducedForms[d_Integer?Negative] := {}
 
-ClassNumber[d_Integer?Negative] := Length[ReducedForms[d]]
+PrincipalForm[d_Integer?Negative] /; Mod[d, 4] == 0 := {1, 0, -d/4}
+PrincipalForm[d_Integer?Negative] /; Mod[d, 4] == 1 := {1, 1, (1-d)/4}
 
 (* ::Subsection::Closed:: *)
-(*Elementary Genus Theory*)
+(*Class Group Structure*)
 
 (* ::Subsubsection::Closed:: *)
 (*Helper Functions*)
-ClearAll[equalDiscriminantQ, dirichletB, coprimeRepresentative]
-
-equalDiscriminantQ[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}] := Equal @@ QuadraticFormDiscriminant[f1, f2]
+ClearAll[dirichletB];
 
 dirichletB[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}] /; equalDiscriminantQ[f1, f2] && (GCD[a1, a2, (b1 + b2)/2] == 1) := Module[
 	{disc = QuadraticFormDiscriminant[f1], b},
@@ -148,33 +158,10 @@ dirichletB[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}] /; equalDiscriminantQ[f1, f
 	]
 ]
 
-coprimeRepresentative[f_, m_] := Module[
-	{factors = FactorInteger[m][[;;, 1]], remainders, p, q},
-	remainders = Table[
-		SelectFirst[
-			{{1, 0}, {0, 1}, {1, 1}},
-			GCD[# . matrixForm[f] . #, i] == 1&
-		],
-		{i, factors}
-	];
-	{p, q} = {#1, #2}/GCD[#1, #2]& @@ Table[ChineseRemainder[remainders[[;;, i]], factors], {i, 2}];
-	{{p, q}.matrixForm[f].{p, q}, {p, q}}
-]
-
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Main Functions*)
 
-GenusRepresentatives[f: {a_, b_, c_}] /; PrimitiveFormQ[f] := Module[
-	{disc = -QuadraticFormDiscriminant[f], bound},
-    bound = Ceiling[disc/2];
-	Select[Union[Flatten[Table[Mod[f . {x^2, x y, y^2}, disc], {x, -bound, bound}, {y, -bound, bound}]]], GCD[disc, #] == 1&]
-]
-
-SameGenusQ[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}] /; equalDiscriminantQ[f1, f2] := Equal @@ (GenusRepresentatives /@ {f1, f2})
-SameGenusQ[{a1_, b1_, c1_}, {a2_, b2_, c2_}] := False;
-
-PrincipalForm[d_Integer?Negative] /; Mod[d, 4] == 0 := {1, 0, -d/4}
-PrincipalForm[d_Integer?Negative] /; Mod[d, 4] == 1 := {1, 1, (1-d)/4}
+ClassNumber[d_Integer?Negative] := Length[ReducedForms[d]]
 
 Options[DirichletComposition] = {"Reduce" -> False};
 
@@ -214,7 +201,7 @@ DirichletComposition[f1_, f2_, ops: OptionsPattern[]] /; equalDiscriminantQ[f1, 
 
 Options[ClassGroup] = Union[FilterRules[Options[Grid], Except[{Dividers, ItemSize}]], {Dividers -> {2 -> True, 2 -> True}, ItemSize -> Full}];
 
-ClassGroup[d_Integer?Negative, ops: OptionsPattern[]] /; Mod[d, 4] == 0 || Mod[d, 4] == 1 := Module[
+ClassGroup[d_Integer?Negative, ops: OptionsPattern[]] /; discriminantQ[d] := Module[
 	{classes = ReducedForms[d], classNumber, options = FilterRules[{ops}, Except[{Dividers, ItemSize}]]},
 	classNumber = Length[classes];
 	Grid[
@@ -250,6 +237,28 @@ SelfInverseForms[d_Integer] /; discriminantQ[d] := Cases[
 	f: {a_, b_, c_} /; b == 0 || a == b || a == c :> f
 ]
 
+(* ::Subsection::Closed:: *)
+(*Elementary Genus Theory*)
+
+(* ::Subsubsection::Closed:: *)
+(*Helper Functions*)
+ClearAll[coprimeRepresentative]
+
+coprimeRepresentative[f_, m_] := Module[
+	{factors = FactorInteger[m][[;;, 1]], remainders, p, q},
+	remainders = Table[
+		SelectFirst[
+			{{1, 0}, {0, 1}, {1, 1}},
+			GCD[# . matrixForm[f] . #, i] == 1&
+		],
+		{i, factors}
+	];
+	{p, q} = {#1, #2}/GCD[#1, #2]& @@ Table[ChineseRemainder[remainders[[;;, i]], factors], {i, 2}];
+	{{p, q}.matrixForm[f].{p, q}, {p, q}}
+]
+
+(* ::Subsubsection:: *)
+(*Main Functions*)
 
 GenusNumber[d_] /; discriminantQ[d] := Module[
 	{r = Length[Cases[FactorInteger[d], {p_, _} /; p > 2 :> p]], n = -d / 4, exp},
@@ -265,6 +274,15 @@ GenusNumber[d_] /; discriminantQ[d] := Module[
 	];
 	2^(exp - 1)
 ]
+
+GenusRepresentatives[f: {a_, b_, c_}] /; PrimitiveFormQ[f] := Module[
+	{disc = -QuadraticFormDiscriminant[f], bound},
+    bound = Ceiling[disc/2];
+	Select[Union[Flatten[Table[Mod[f . {x^2, x y, y^2}, disc], {x, -bound, bound}, {y, -bound, bound}]]], GCD[disc, #] == 1&]
+]
+
+SameGenusQ[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}] /; equalDiscriminantQ[f1, f2] := Equal @@ (GenusRepresentatives /@ {f1, f2})
+SameGenusQ[{a1_, b1_, c1_}, {a2_, b2_, c2_}] := False;
 
 End[];
 EndPackage[];
