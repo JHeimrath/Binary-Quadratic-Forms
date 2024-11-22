@@ -12,8 +12,8 @@
 BeginPackage["QuadraticForms`"];
 (*Throughout this package, when talking about a (quadratic) form {a, b, c}, we will mean the quadratic form ax^2+bxy+cy^2*)
 ClearAll[QuadraticFormDiscriminant, PositiveDefiniteFormQ, PositiveDefiniteFormQ, PrimitiveFormQ, ReducedFormQ, ReduceForm, EquivalentFormsQ,
-ReducedForms, ClassNumber, GenusRepresentatives, SameGenusQ, PrincipalForm, DirichletComposition, ClassGroup, QuadraticCharacter, SelfInverseForms,
-GenusNumber, PrincipalGenus]
+ReducedForms, ClassNumber, GenusRepresentatives, CompleteCharacter, SameGenusQ, PrincipalForm, DirichletComposition, ClassGroup, QuadraticCharacter, 
+SelfInverseForms, GenusNumber, PrincipalGenus]
 
 (* ::Subsubsubsection:: *)
 (*Elementary Theory of Quadratic Forms*)
@@ -38,6 +38,7 @@ SelfInverseForms::usage = "SelfInverseForms[d] returns the reduced forms of orde
 (*Elementary Genus Theory*)
 GenusNumber::usage = "GenusNumber[d] returns the number of genera of forms of discriminant d"
 GenusRepresentatives::usage = "GenusRepresentatives[f] returns the values represented by the genus containing the form f";
+CompleteCharacter::usage = "CompleteCharacter[f] returns the complete character of the form f"
 SameGenusQ::usage = "SameGenusQ[f, g] returns True if the forms f and g belong to the same genus, and False otherwise";
 PrincipalGenus::usage = "PrincipalGenus[d] returns the principle genus of discriminant d";
 
@@ -213,10 +214,10 @@ SelfInverseForms[d_Integer] /; discriminantQ[d] := Cases[
 
 (* ::Subsubsection::Closed:: *)
 (*Helper Functions*)
-ClearAll[coprimeRepresentative]
+ClearAll[coprimeRepresentative, assignedCharacters, delta, epsilon]
 
 coprimeRepresentative[f_, m_] := Module[
-	{factors = FactorInteger[m][[;;, 1]], remainders, p, q},
+	{factors = FactorInteger[Abs[m]][[;;, 1]], remainders, p, q},
 	remainders = Table[
 		SelectFirst[
 			{{1, 0}, {0, 1}, {1, 1}},
@@ -227,6 +228,12 @@ coprimeRepresentative[f_, m_] := Module[
 	{p, q} = {#1, #2}/GCD[#1, #2]& @@ Table[ChineseRemainder[remainders[[;;, i]], factors], {i, 2}];
 	{{p, q}.matrixForm[f].{p, q}, {p, q}}
 ]
+
+assignedCharacters[m_Integer, p_?PrimeQ] /; CoprimeQ[m, p] := JacobiSymbol[m, p]
+
+delta[a_?OddQ] := (-1)^((a - 1)/2)
+
+epsilon[a_?OddQ] := (-1)^((a^2 - 1)/8)
 
 (* ::Subsubsection:: *)
 (*Main Functions*)
@@ -252,7 +259,47 @@ GenusRepresentatives[f: {a_, b_, c_}] /; PrimitiveFormQ[f] := Module[
 	Select[Union[Flatten[Table[Mod[f . {x^2, x y, y^2}, disc], {x, -bound, bound}, {y, -bound, bound}]]], GCD[disc, #] == 1&]
 ]
 
-SameGenusQ[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}] /; equalDiscriminantQ[f1, f2] := Equal @@ (GenusRepresentatives /@ {f1, f2})
+CompleteCharacter[f: {a_, b_, c_}] := Module[
+	{d = QuadraticFormDiscriminant[f], m, factors, evaluatedCharacters, n},
+	m = coprimeRepresentative[f, d][[1]];
+	factors = Cases[FactorInteger[d], {p_, _} /; p > 2 :> p];
+	evaluatedCharacters = assignedCharacters[m, #]& /@ factors;
+	n = -d / 4;
+	Which[
+		Mod[d, 4] == 1 || Mod[n, 4] == 3,
+			evaluatedCharacters,
+		Mod[n, 4] == 1 || Mod[n, 8] == 4,
+			Join[
+				evaluatedCharacterss,
+				{delta[m]}
+			],
+		Mod[n, 8] == 2,
+			Join[
+				evaluatedCharacters,
+				{delta[m] epsilon[m]}
+			],
+		Mod[n, 8] == 6,
+			Join[
+				evaluatedCharacters,
+				{epsilon[m]}
+			],
+		Mod[n, 8] == 0,
+			Join[
+				evaluatedCharacters,
+				{delta[m], epsilon[m]}
+			]
+	]
+]
+
+Options[SameGenusQ] = {Method -> Automatic}
+
+SameGenusQ[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}, OptionsPattern[]] /; equalDiscriminantQ[f1, f2] := Switch[
+	OptionValue[Method],
+	Automatic | "CompleteCharacter",
+		CompleteCharacter[f1] == CompleteCharacter[f2],
+	"GenusRepresentatives",
+		Equal @@ (GenusRepresentatives /@ {f1, f2})
+]
 SameGenusQ[{a1_, b1_, c1_}, {a2_, b2_, c2_}] := False;
 
 PrincipalGenus[d_Integer] /; discriminantQ[d] := Union[DirichletComposition[#, #, "Reduce" -> True]& /@ ReducedForms[d]]
