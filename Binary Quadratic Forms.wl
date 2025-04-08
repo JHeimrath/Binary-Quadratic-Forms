@@ -36,9 +36,9 @@ SelfInverseForms::usage = "SelfInverseForms[d] returns the reduced forms of orde
 
 (* ::Subsubsubsection:: *)
 (*Elementary Genus Theory*)
-GenusNumber::usage = "GenusNumber[d] returns the number of genera of forms of discriminant d"
+GenusNumber::usage = "GenusNumber[d] returns the number of genera of forms of discriminant d";
 GenusRepresentatives::usage = "GenusRepresentatives[f] returns the values represented by the genus containing the form f";
-CompleteCharacter::usage = "CompleteCharacter[f] returns the complete character of the form f"
+CompleteCharacter::usage = "CompleteCharacter[f] returns the complete character of the form f";
 SameGenusQ::usage = "SameGenusQ[f, g] returns True if the forms f and g belong to the same genus, and False otherwise";
 PrincipalGenus::usage = "PrincipalGenus[d] returns the principle genus of discriminant d";
 
