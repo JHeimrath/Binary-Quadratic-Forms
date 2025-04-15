@@ -13,7 +13,7 @@ BeginPackage["QuadraticForms`"];
 (*Throughout this package, when talking about a (quadratic) form {a, b, c}, we will mean the quadratic form ax^2+bxy+cy^2*)
 ClearAll[QuadraticFormDiscriminant, PositiveDefiniteFormQ, PositiveDefiniteFormQ, PrimitiveFormQ, ReducedFormQ, ReduceForm, EquivalentFormsQ,
 ReducedForms, ClassNumber, GenusRepresentatives, CompleteCharacter, SameGenusQ, PrincipalForm, DirichletComposition, ClassGroup, QuadraticCharacter, 
-SelfInverseForms, GenusNumber, PrincipalGenus]
+SelfInverseForms, GenusNumber, PrincipalGenus, GreenSoundararajan, GreenSoundararajanPlot]
 
 (* ::Subsubsubsection:: *)
 (*Elementary Theory of Quadratic Forms*)
@@ -41,6 +41,11 @@ GenusRepresentatives::usage = "GenusRepresentatives[f] returns the values repres
 CompleteCharacter::usage = "CompleteCharacter[f] returns the complete character of the form f";
 SameGenusQ::usage = "SameGenusQ[f, g] returns True if the forms f and g belong to the same genus, and False otherwise";
 PrincipalGenus::usage = "PrincipalGenus[d] returns the principle genus of discriminant d";
+
+(* ::Subsubsubsection::*)
+(*Green Soundararajan Theorem*)
+GreenSoundararajan::usage = "";
+GreenSoundararajanPlot::usage = "";
 
 Begin["`Private`"];
 
@@ -303,6 +308,61 @@ SameGenusQ[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}, OptionsPattern[]] /; equalD
 SameGenusQ[{a1_, b1_, c1_}, {a2_, b2_, c2_}] := False;
 
 PrincipalGenus[d_Integer] /; discriminantQ[d] := Union[DirichletComposition[#, #, "Reduce" -> True]& /@ ReducedForms[d]]
+
+(* ::Subsection::Closed:: *)
+(*Green Soundararajan*)
+
+(* ::Subsubsection::Closed:: *)
+ClearAll[deltaSolvable, GreenSoundararajan, GreenSoundararajanPlot];
+
+deltaSolvable[n_, max_, k_:1] := deltaSolvable[n, {1, max}, k]
+
+deltaSolvable[n_, {min_, max_}, k_:1] := (Length[Flatten[Table[SolveValues[x^2 + d y^2 == n, {x, y}, PositiveIntegers], {d, Ceiling[Max[1, min]], Floor[max]}], 1]] >= k)
+
+GreenSoundararajan[n_, a_, k_:1] := Module[
+	{gsdelta = Floor[2^(Log[Log[n]]+ a Sqrt[Log[Log[n]]])]},
+	Length[Select[Range[n], deltaSolvable[#, gsdelta, k]&]]/n
+]
+
+Options[GreenSoundararajanPlot] = Join[Options[ListPlot], {"Parallelize" -> False}];
+
+GreenSoundararajanPlot[n_, {min_, max_, d_}, residueClass: {a_Integer?Positive, b_Integer?Positive}, ops: OptionsPattern[]] := Module[
+	{steps = Floor[(max - min)/d], represented = {}, notRepresented = Range[a, n, b], len, gsdelta, result = {}},
+	
+	gsdelta[x_] := Floor[2^(Log[Log[n]] + x Sqrt[Log[Log[n]]])];
+	len = Length[notRepresented];
+	
+	result = Accumulate[Reap[Table[
+			Sow[Length[Select[notRepresented, deltaSolvable[#, {gsdelta[min + i d], gsdelta[min + (i + 1)d]}]&]]/len];
+			represented = Union[Select[notRepresented, deltaSolvable[#, {gsdelta[min + i d], gsdelta[min + (i + 1)d]}]&], represented];
+			notRepresented = Complement[notRepresented, represented];,
+			{i, 0, steps}
+		]][[2, 1]]];
+	
+	(*If[
+		!OptionValue["Parallelize"],
+		result = Accumulate[Reap[Table[
+			Sow[Length[Select[notRepresented, deltaSolvable[#, {gsdelta[min + i d], gsdelta[min + (i + 1)d]}]&]]/len];
+			represented = Union[Select[notRepresented, deltaSolvable[#, {gsdelta[min + i d], gsdelta[min + (i + 1)d]}]&], represented];
+			notRepresented = Complement[notRepresented, represented];,
+			{i, 0, steps}
+		]][[2, 1]]]
+		,
+		(* This branch still needs a bunch of work *)
+		result = ParallelTable[
+			{i, Length[Select[Range[n], deltaSolvable[#, {gsdelta[min + i d], gsdelta[min + (i + 1)d]}]&]]/n},
+			{i, 0, steps},
+			DistributedContexts -> Automatic
+		];
+		result = Accumulate[SortBy[result, First][[;;, 2]]];
+	];*)
+	
+	Show[
+		ListPlot[Transpose[{Range[min, max, d], result}]],
+		Plot[Erf[-Infinity, x]/2, {x, min, max}, PlotStyle -> Red],
+		ImageSize -> OptionValue[ImageSize]
+	]
+]
 
 End[];
 EndPackage[];
