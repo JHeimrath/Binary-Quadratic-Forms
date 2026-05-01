@@ -13,7 +13,8 @@ BeginPackage["QuadraticForms`"];
 (*Throughout this package, when talking about a (quadratic) form {a, b, c}, we will mean the quadratic form ax^2+bxy+cy^2*)
 ClearAll[QuadraticFormDiscriminant, PositiveDefiniteFormQ, PositiveDefiniteFormQ, PrimitiveFormQ, ReducedFormQ, ReduceForm, EquivalentFormsQ,
 ReducedForms, ClassNumber, GenusRepresentatives, CompleteCharacter, SameGenusQ, PrincipalForm, DirichletComposition, ClassGroup, QuadraticCharacter, 
-SelfInverseForms, GenusNumber, PrincipalGenus, GreenSoundararajan, GreenSoundararajanPlot, HeegnerNumbers, ConvenientNumbers]
+SelfInverseForms, GenusNumber, PrincipalGenus, GreenSoundararajan, GreenSoundararajanPlot, NumberOfLocalSolutions, LocallySolvableQ, HeegnerNumbers,
+ConvenientNumbers]
 
 (* ::Subsubsubsection:: *)
 (*Elementary Theory of Quadratic Forms*)
@@ -46,6 +47,10 @@ PrincipalGenus::usage = "PrincipalGenus[d] returns the principle genus of discri
 (*Green Soundararajan Theorem*)
 GreenSoundararajan::usage = "";
 GreenSoundararajanPlot::usage = "";
+
+(* ::Subsubsubsection:: *)
+(*Local Solutions*)
+NumberOfLocalSolutions::usage = "NumberOfLocalSolutions[f, n, p] computes the number of solutions to f(x, y) = n modulo a prime p";
 
 
 (* ::Subsubsubsection:: *)
@@ -367,6 +372,17 @@ GreenSoundararajanPlot[n_, {min_, max_, d_}, residueClass: {a_Integer?Positive, 
 		ListPlot[Transpose[{Range[min, max, d], result}]],
 		Plot[Erf[-Infinity, x]/2, {x, min, max}, PlotStyle -> Red],
 		ImageSize -> OptionValue[ImageSize]
+	]
+]
+(*Main Functions*)
+
+NumberOfLocalSolutions[f: {a_, b_, c_}, n_, 2] /; PrimitiveFormQ[f] := 2 + (-1)^n (1 + (-1)^a + (-1)^c + (-1)^(a + b + c)) / 2
+NumberOfLocalSolutions[f: {a_, b_, c_}, n_, p_?PrimeQ] /; PrimitiveFormQ[f] := Module[
+	{discriminant = QuadraticFormDiscriminant[f], \[Lambda] = SelectFirst[{a, c}, Mod[#, p] != 0&]},
+	If[
+		Divisible[discriminant, p],
+		(1 + JacobiSymbol[\[Lambda] n, p]) p,
+		(1 + (1 - JacobiSymbol[n, p]^2)JacobiSymbol[discriminant, p]) p - JacobiSymbol[discriminant, p]
 	]
 ]
 
