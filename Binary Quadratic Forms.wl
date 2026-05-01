@@ -13,7 +13,7 @@ BeginPackage["QuadraticForms`"];
 (*Throughout this package, when talking about a (quadratic) form {a, b, c}, we will mean the quadratic form ax^2+bxy+cy^2*)
 ClearAll[QuadraticFormDiscriminant, PositiveDefiniteFormQ, PositiveDefiniteFormQ, PrimitiveFormQ, ReducedFormQ, ReduceForm, EquivalentFormsQ,
 ReducedForms, ClassNumber, GenusRepresentatives, CompleteCharacter, SameGenusQ, PrincipalForm, DirichletComposition, ClassGroup, QuadraticCharacter, 
-SelfInverseForms, GenusNumber, PrincipalGenus, GreenSoundararajan, GreenSoundararajanPlot]
+SelfInverseForms, GenusNumber, PrincipalGenus, GreenSoundararajan, GreenSoundararajanPlot, HeegnerNumbers, ConvenientNumbers]
 
 (* ::Subsubsubsection:: *)
 (*Elementary Theory of Quadratic Forms*)
@@ -46,6 +46,12 @@ PrincipalGenus::usage = "PrincipalGenus[d] returns the principle genus of discri
 (*Green Soundararajan Theorem*)
 GreenSoundararajan::usage = "";
 GreenSoundararajanPlot::usage = "";
+
+
+(* ::Subsubsubsection:: *)
+(*Constants*)
+HeegnerNumbers::usage = "A square-free, positive integer is a Heegner number iff \[DoubleStruckCapitalQ](Sqrt[-d]) has class number one";
+ConvenientNumbers::usage = "An integer n is convenient iff every genus of quadratic forms of discriminant -4n consists of a single class";
 
 Begin["`Private`"];
 
@@ -363,6 +369,14 @@ GreenSoundararajanPlot[n_, {min_, max_, d_}, residueClass: {a_Integer?Positive, 
 		ImageSize -> OptionValue[ImageSize]
 	]
 ]
+
+(* ::Subsection::Closed:: *)
+(*Constants*)
+
+HeegnerNumbers = {1, 2, 3, 7, 11, 19, 43, 67, 163}
+ConvenientNumbers = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 15, 16, 18, 21, 22, 24, 25, 28, 30, 33, 37, 40, 42, 45, 48, 57, 58, 60, 70, 72, 78, 85,
+	88, 93, 102, 105, 112, 120, 130, 133, 165, 168, 177, 190, 210, 232, 240, 253, 273, 280, 312, 330, 345, 357, 385, 408, 462, 520, 760, 840, 1320,
+	1365, 1848}
 
 End[];
 EndPackage[];
