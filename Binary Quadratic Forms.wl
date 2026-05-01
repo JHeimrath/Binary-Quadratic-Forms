@@ -51,6 +51,7 @@ GreenSoundararajanPlot::usage = "";
 (* ::Subsubsubsection:: *)
 (*Local Solutions*)
 NumberOfLocalSolutions::usage = "NumberOfLocalSolutions[f, n, p] computes the number of solutions to f(x, y) = n modulo a prime p";
+LocallySolvableQ::usage = "LocallySolvableQ[f, n, p, k] returns True if f(x, y) = n modulo a prime power p^k has a solution and False otherwise";
 
 
 (* ::Subsubsubsection:: *)
@@ -251,7 +252,7 @@ delta[a_?OddQ] := (-1)^((a - 1)/2)
 
 epsilon[a_?OddQ] := (-1)^((a^2 - 1)/8)
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Main Functions*)
 
 GenusNumber[d_Integer] /; discriminantQ[d] := Module[
@@ -401,6 +402,30 @@ NumberOfLocalSolutions[f: {a_, b_, c_}, n_, p_?PrimeQ] /; PrimitiveFormQ[f] := M
 		Divisible[discriminant, p],
 		(1 + JacobiSymbol[\[Lambda] n, p]) p,
 		(1 + (1 - JacobiSymbol[n, p]^2)JacobiSymbol[discriminant, p]) p - JacobiSymbol[discriminant, p]
+	]
+]
+
+
+LocallySolvableQ[f: {a_, b_, c_}, n_, 2, k_:1] /; PrimitiveFormQ[f] := $Failed;
+LocallySolvableQ[f: {a_, b_, c_}, n_, p_?PrimeQ, k_:1] /; PrimitiveFormQ[f] := Module[
+	{d = QuadraticFormDiscriminant[f], v = valuation[n, p], assignedCharacter, e, n0, d0},
+	Switch[
+		JacobiSymbol[d, p],
+		1,
+			True,
+		-1,
+			Or[v >= k, EvenQ[valuation[n, p]]],
+		0,
+			assignedCharacter = JacobiSymbol[SelectFirst[{a, c}, Mod[#, p] != 0&], p];
+			e = valuation[QuadraticFormDiscriminant[f], p];
+			n0 = n / p^v;
+			d0 = d / p^e;
+			Or[
+				v>= k,
+				And[v < Min[e, k], EvenQ[v], JacobiSymbol[n0, p] == assignedCharacter],
+				And[EvenQ[e], e <= v < k, (JacobiSymbol[d0, p] == 1 || EvenQ[v - e])],
+				And[OddQ[e], e <= v < k, JacobiSymbol[n0, p] == If[EvenQ[v - e], JacobiSymbol[-d0, p] assignedCharacter, assignedCharacter]]
+			]
 	]
 ]
 
