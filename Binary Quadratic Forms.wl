@@ -374,6 +374,24 @@ GreenSoundararajanPlot[n_, {min_, max_, d_}, residueClass: {a_Integer?Positive, 
 		ImageSize -> OptionValue[ImageSize]
 	]
 ]
+
+(* ::Subsection::Closed:: *)
+(*Local Solutions*)
+
+(* ::Subsubsection::Closed:: *)
+(*Helper Functions*)
+ClearAll[valuation];
+
+valuation[n_Integer, p_?PrimeQ] := Which[
+	n == 0,
+		Infinity,
+	Divisible[n, p],
+		Cases[FactorInteger[n], {p, a_} :> a][[1]],
+	True,
+		0
+]
+
+(* ::Subsubsection::Closed:: *)
 (*Main Functions*)
 
 NumberOfLocalSolutions[f: {a_, b_, c_}, n_, 2] /; PrimitiveFormQ[f] := 2 + (-1)^n (1 + (-1)^a + (-1)^c + (-1)^(a + b + c)) / 2
