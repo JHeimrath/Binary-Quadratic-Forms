@@ -13,8 +13,8 @@ BeginPackage["QuadraticForms`"];
 (*Throughout this package, when talking about a (quadratic) form {a, b, c}, we will mean the quadratic form ax^2+bxy+cy^2*)
 ClearAll[QuadraticFormDiscriminant, PositiveDefiniteFormQ, PositiveDefiniteFormQ, PrimitiveFormQ, ReducedFormQ, ReduceForm, EquivalentFormsQ,
 ReducedForms, ClassNumber, GenusRepresentatives, CompleteCharacter, SameGenusQ, PrincipalForm, DirichletComposition, ClassGroup, QuadraticCharacter, 
-SelfInverseForms, GenusNumber, PrincipalGenus, GreenSoundararajan, GreenSoundararajanPlot, NumberOfLocalSolutions, LocallySolvableQ, HeegnerNumbers,
-ConvenientNumbers]
+SelfInverseForms, GenusNumber, PrincipalGenus, HilbertClassPolynomial, HilbertClassField, GreenSoundararajan, GreenSoundararajanPlot,
+NumberOfLocalSolutions, LocallySolvableQ, HeegnerNumbers, ConvenientNumbers]
 
 (* ::Subsubsubsection:: *)
 (*Elementary Theory of Quadratic Forms*)
@@ -42,6 +42,8 @@ GenusRepresentatives::usage = "GenusRepresentatives[f] returns the values repres
 CompleteCharacter::usage = "CompleteCharacter[f] returns the complete character of the form f";
 SameGenusQ::usage = "SameGenusQ[f, g] returns True if the forms f and g belong to the same genus, and False otherwise";
 PrincipalGenus::usage = "PrincipalGenus[d] returns the principle genus of discriminant d";
+HilbertClassPolynomial::usage = "HilbertClassPolynomial[d, x] returns the hilbert class polynomial H(x) associated to the discriminant d"
+HilbertClassField::usage = "HilbertClassField[d] returns the Hilbert Class Field of \[DoubleStruckCapitalQ](sqrt(d))"
 
 (* ::Subsubsubsection::*)
 (*Green Soundararajan Theorem*)
@@ -231,8 +233,9 @@ SelfInverseForms[d_Integer] /; discriminantQ[d] := Cases[
 
 (* ::Subsubsection::Closed:: *)
 (*Helper Functions*)
-ClearAll[coprimeRepresentative, assignedCharacters, delta, epsilon]
+ClearAll[coprimeRepresentative, assignedCharacters, delta, epsilon, fieldDiscriminant, algCoeffs, embedConjugates, realLattice, absolutePolynomialReduction]
 
+(* Given a qf f and an integer m returns an integer n represented by f s.t. (m,n)=1 *)
 coprimeRepresentative[f_, m_] := Module[
 	{factors = FactorInteger[Abs[m]][[;;, 1]], remainders, p, q},
 	remainders = Table[
@@ -251,6 +254,77 @@ assignedCharacters[m_Integer, p_?PrimeQ] /; CoprimeQ[m, p] := JacobiSymbol[m, p]
 delta[a_?OddQ] := (-1)^((a - 1)/2)
 
 epsilon[a_?OddQ] := (-1)^((a^2 - 1)/8)
+
+fieldDiscriminant[d_Integer] := If[Mod[d, 4] == 1, -d, -4d]
+
+(* WARNING: algCoeffs, embedConjugates, realLattice, and absolutePolynomialReduction were implemented by an LLM (Claude Opus 4.8 High)*)
+
+(* coefficients of an integral-basis element in the power basis of a root *)
+algCoeffs[a_, n_] := Which[
+	Head[a] === AlgebraicNumber,
+		PadRight[a[[2]], n],
+	True,
+		PadRight[{a}, n]
+];
+
+(* n x n matrix of numeric conjugates: rows = basis elements, cols = embeddings *)
+embedConjugates[f_, x_, b_, prec_] := Module[
+	{rts, n},
+	n = Exponent[f, x];
+	rts = x /. NSolve[f == 0, x, WorkingPrecision -> prec];
+	Table[
+		With[
+			{cs = algCoeffs[b[[i]], n]},
+			Sum[cs[[k + 1]] rts[[j]]^k, {k, 0, n-1}]
+		],
+		{i, n},
+		{j, n}
+	]
+];
+
+(* real Minkowski (T2) lattice: real roots give one coord, complex pairs give sqrt(2)*Re and sqrt(2)*Im of one representative *)
+realLattice[f_, x_, M_, prec_] := Module[
+	{rts, n, tol, isReal, cols, seen},
+	n = Exponent[f, x];
+	rts = x /. NSolve[f == 0, x, WorkingPrecision -> prec];
+	tol = 10^(-prec/3);
+	isReal = Map[Abs[Im[#]] < tol &, rts];
+	cols = {};
+	seen = {};
+	Do[
+		If[
+			isReal[[j]],
+			AppendTo[cols, Re[M[[All, j]]]],
+     		If[
+				NoneTrue[seen, Abs[# - Conjugate[rts[[j]]]] < tol &],
+       			AppendTo[seen, rts[[j]]];
+       			AppendTo[cols, Sqrt[2] Re[M[[All, j]]]];
+       			AppendTo[cols, Sqrt[2] Im[M[[All, j]]]]
+			]
+		],
+		{j, n}
+	];
+  	Transpose[cols]
+];
+
+(* main reducer: LLL-reduce O_L, recover the unimodular transform, take the minimal polynomial of smallest height among short primitive elements *)
+absolutePolynomialReduction[f_, x_, prec_: 200] := Module[
+	{n, basis, M, L, scaled, lll, U, combos, elts, polys},
+  	n = Exponent[f, x];
+	If[n == 1, Return[f]];
+	basis = NumberFieldIntegralBasis[Root[f, 1]];
+	M = embedConjugates[f, x, basis, prec];
+	L = realLattice[f, x, M, prec];
+	scaled = Round[L*10^(Floor[prec/2])];
+	lll = LatticeReduce[scaled];
+	U = Round[Transpose[LinearSolve[Transpose[scaled], Transpose[lll]]]];
+	elts = U . basis;                      (* short algebraic integers *)
+  	combos = DeleteDuplicates@Join[
+		elts,
+		Flatten[Table[elts[[i]] + s elts[[j]], {i, n}, {j, n}, {s, {-1, 1}}], 2]
+	];
+  	polys = DeleteDuplicates@Quiet@Select[MinimalPolynomial[#, x] & /@ combos, Exponent[#, x] == n &];
+  	First@SortBy[polys, {Max[Abs[CoefficientList[#, x]]] &, Total[Abs[CoefficientList[#, x]]] &}]];
 
 (* ::Subsubsection::Closed:: *)
 (*Main Functions*)
@@ -320,6 +394,43 @@ SameGenusQ[f1: {a1_, b1_, c1_}, f2: {a2_, b2_, c2_}, OptionsPattern[]] /; equalD
 SameGenusQ[{a1_, b1_, c1_}, {a2_, b2_, c2_}] := False;
 
 PrincipalGenus[d_Integer] /; discriminantQ[d] := Union[DirichletComposition[#, #, "Reduce" -> True]& /@ ReducedForms[d]]
+
+
+(* WARNING: absolutePolynomialReduction was generated by an LLM (Claude Opus 4.8 High) *)
+Options[HilbertClassPolynomial] = {"ReducedCoefficients" -> False, "ReductionPrecision" -> 200};
+
+HilbertClassPolynomial[d_Integer, x_, OptionsPattern[]] := Module[
+	{disc = fieldDiscriminant[d], reducedForms, h, precision, taus, jValues, coefficients, hilbertPoly},
+	reducedForms = ReducedForms[-disc];
+	h = Length[reducedForms];
+	precision = Ceiling[(Pi Sqrt[disc] Sum[1. / f[[1]], {f, reducedForms}])/Log[10] + 30 + 5h];
+	taus = ((-#[[2]] + Sqrt[N[-disc, precision]]) / (2 #[[1]])) & /@ reducedForms;
+	jValues = 1728 KleinInvariantJ[taus];
+	coefficients = CoefficientList[Product[x - i, {i, jValues}], x];
+	hilbertPoly = Sum[Round[Re[coefficients[[k + 1]]]] x^k, {k, 0, h}];
+  	If[
+		OptionValue["ReducedCoefficients"],
+		absolutePolynomialReduction[hilbertPoly, x, OptionValue["ReductionPrecision"]],
+		hilbertPoly
+	]
+]
+
+Options[HilbertClassField] = {"ReductionPrecision" -> 200}
+
+HilbertClassField[d_Integer, x_, OptionsPattern[]] := Module[
+	{discriminant = fieldDiscriminant[d], HD, reduction},
+  	HD = HilbertClassPolynomial[d, x];
+	reduction = absolutePolynomialReduction[HD, x, OptionValue["ReductionPrecision"]];
+  	<|
+	   "K" -> Sqrt[-d],
+	   "disc(K)" -> discriminant,
+	   "class number" -> Exponent[HD, x],
+	   "Cl(K) forms" -> ReducedForms[-discriminant],
+	   "H_D(X) raw" -> HD,
+	   "H_D(X) reduced" -> reduction,
+	   "H" -> Row[{"K(y), y a root of ", reduction}]
+	|>
+];
 
 (* ::Subsection::Closed:: *)
 (*Green Soundararajan*)
