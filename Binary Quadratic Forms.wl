@@ -423,8 +423,8 @@ LocallySolvableQ[f: {a_, b_, c_}, n_, p_?PrimeQ, k_:1] /; PrimitiveFormQ[f] := M
 			Or[
 				v>= k,
 				And[v < Min[e, k], EvenQ[v], JacobiSymbol[n0, p] == assignedCharacter],
-				And[EvenQ[e], e <= v < k, (JacobiSymbol[d0, p] == 1 || EvenQ[v - e])],
-				And[OddQ[e], e <= v < k, JacobiSymbol[n0, p] == If[EvenQ[v - e], JacobiSymbol[-d0, p] assignedCharacter, assignedCharacter]]
+				And[e <= v < k, EvenQ[e], (JacobiSymbol[d0, p] == 1 || EvenQ[v - e])],
+				And[e <= v < k, OddQ[e], JacobiSymbol[n0, p] == If[EvenQ[v - e], JacobiSymbol[-d0, p] assignedCharacter, assignedCharacter]]
 			]
 	]
 ]
